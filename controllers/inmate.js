@@ -135,11 +135,11 @@ const viewCertificates = async (req,res)=>{
 
 const applyMessOut = async (req,res)=>{
     try{
-        const {user_id,fromDate,toDate} = req.body
-        console.log(req.body)
+        // const {user_id,fromDate,toDate} = req.body
+        const {user_id,fromDate} = req.body
         const getadmno=await pool.query("SELECT hostel_admission_no FROM inmate_table WHERE admission_no=$1",[user_id])
         const hostel_admno=getadmno.rows[0].hostel_admission_no
-        const messout=await pool.query("INSERT INTO messout VALUES($1,$2,$3) RETURNING *",[hostel_admno,fromDate,toDate])
+        const messout=await pool.query("INSERT INTO messout VALUES($1,$2) RETURNING *",[hostel_admno,fromDate])
         console.log(messout)
         // res.json(messout.rows[0])
         res.json(messout)
@@ -148,6 +148,47 @@ const applyMessOut = async (req,res)=>{
         console.log(e)
         
     } 
+}
+
+const applyMessin=async(req,res)=>{
+    try{
+        const {user_id,toDate} = req.body
+        const getadmno=await pool.query("SELECT hostel_admission_no FROM inmate_table WHERE admission_no=$1",[user_id])
+        const hostel_admno=getadmno.rows[0].hostel_admission_no
+        const messout=await pool.query("update messout set todate=$1 where hostel_admission_no=$2 and todate is null returning *",[toDate,hostel_admno])
+        console.log(messout.rows)
+        // res.json(messout.rows[0])
+        res.json(messout)
+    }catch(err)
+    {
+        console.log(err.message)
+    }
+}
+const checkMessOut=async(req,res)=>{
+    try{
+        const {user_id} = req.body
+        const getadmno=await pool.query("SELECT hostel_admission_no FROM inmate_table WHERE admission_no=$1",[user_id])
+        const hostel_admno=getadmno.rows[0].hostel_admission_no
+        const messout=await pool.query("select fromdate from messout where hostel_admission_no=$1 and todate is null",[hostel_admno])
+        if(messout.rows.length>0)
+        {
+            res.json(
+                {
+                    status:true,
+                    data:messout.rows[0]
+                }
+            )
+        }
+        else{
+            res.json(
+                {
+                    status:false
+                }
+            )
+        }
+    }catch(err){
+        console.log(err.message)
+    }
 }
 
 const viewMessBill = async(req,res)=>{
@@ -245,10 +286,12 @@ module.exports={
     submitRoomChange,
     viewMessOutHistory,
     messOutDays,
+    checkMessOut,
     renderFormTemplate,
     applyCertificate,
     viewCertificates,
     applyMessOut,
+    applyMessin,
     messOutRequests,
     currentMessInmates,
     uploadMessBill,

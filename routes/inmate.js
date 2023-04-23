@@ -33,6 +33,8 @@ router.get('/messoutdays',inmate.messOutDays)
 
 //Apply for MessOut
 router.post('/applymessout',inmate.applyMessOut)
+router.post('/applymessin',inmate.applyMessin)
+router.post('/checkmessout',inmate.checkMessOut)
 
 
 //INMATE - CERTIFICATE ROUTES
