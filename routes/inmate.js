@@ -31,6 +31,8 @@ router.delete('/cancelmessout',inmate.cancelMessOut)
 //View MessOut days
 router.get('/messoutdays',inmate.messOutDays)
 
+router.get('/maximum-messoutdays',inmate.maxMessOutDays)
+
 //Apply for MessOut
 router.post('/applymessout',inmate.applyMessOut)
 router.post('/applymessin',inmate.applyMessin)
@@ -55,6 +57,16 @@ router.put('/messoutdays',async (req,res)=>{
         const {noofDays}=req.body
         const messout=await pool.query("UPDATE messrequirements SET value=$1 WHERE key='messoutdays'",[noofDays])
         console.log(messout)
+    }
+    catch(e){
+        console.error(e)
+    }
+})
+router.put('/messoutmaximumdays',async (req,res)=>{
+    try{
+        const {noofDays}=req.body
+        const messout=await pool.query("UPDATE messrequirements SET value=$1 WHERE key='messoutdaysmaximum' returning * ",[noofDays])
+        res.json(messout)
     }
     catch(e){
         console.error(e)

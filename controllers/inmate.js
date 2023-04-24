@@ -73,6 +73,15 @@ const messOutDays = async (req,res)=>{
         console.error(e)
     }
 }
+const maxMessOutDays=async(req,res)=>{
+    try{
+        const days=await pool.query("SELECT value FROM messrequirements WHERE key='messoutdaysmaximum'")
+        res.json(days.rows)
+    }catch(err)
+    {
+        console.log(err.message)
+    }
+}
 
 const renderFormTemplate = async (req,res)=>{
     try{
@@ -286,6 +295,7 @@ module.exports={
     submitRoomChange,
     viewMessOutHistory,
     messOutDays,
+    maxMessOutDays,
     checkMessOut,
     renderFormTemplate,
     applyCertificate,
