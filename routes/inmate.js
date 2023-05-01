@@ -32,6 +32,7 @@ router.delete('/cancelmessout',inmate.cancelMessOut)
 router.get('/messoutdays',inmate.messOutDays)
 
 router.get('/maximum-messoutdays',inmate.maxMessOutDays)
+router.get('/mess-requirements',inmate.getMessRequirements)
 
 //Apply for MessOut
 router.post('/applymessout',inmate.applyMessOut)
