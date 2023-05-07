@@ -1,5 +1,6 @@
 const { pool } = require("../db");
 const notification = require("../controllers/notification");
+const { query } = require("express");
 const dateConverter = (inputdate) => {
   const date = new Date(inputdate);
   let month = (date.getMonth() + 1).toString();
@@ -71,6 +72,10 @@ const submitRoomChange = async (req, res) => {
 const viewMessOutHistory = async (req, res) => {
   try {
     const user_id = req.query.user_id;
+    const messoutUpdate = await pool.query(
+      "update messout set showtodate=true where hostel_admission_no=(SELECT hostel_admission_no FROM inmate_table WHERE admission_no=$1) and todate<current_date and showtodate=false",
+      [user_id]
+    );
     const messouts = await pool.query(
       "SELECT * FROM messout WHERE hostel_admission_no=(SELECT hostel_admission_no FROM inmate_table WHERE admission_no=$1)",
       [user_id]
@@ -82,10 +87,10 @@ const viewMessOutHistory = async (req, res) => {
 };
 
 const messOutDays = async (req, res) => {
+
   try {
-    const days = await pool.query(
-      "SELECT value FROM messrequirements WHERE key='messoutdays'"
-    );
+    const query=req.query.hostel==="MH"?"SELECT value FROM messrequirements WHERE key='messoutdays'":"SELECT value FROM messrequirementsLH WHERE key='messoutdays'"
+    const days = await pool.query(query);
     res.json(days.rows);
   } catch (e) {
     console.error(e);
@@ -93,14 +98,27 @@ const messOutDays = async (req, res) => {
 };
 const maxMessOutDays = async (req, res) => {
   try {
+    const query=req.query.hostel=="MH"?"SELECT value FROM messrequirements WHERE key='messoutdaysmaximum'":"SELECT value FROM messrequirementsLH WHERE key='messoutdaysmaximum'"
     const days = await pool.query(
-      "SELECT value FROM messrequirements WHERE key='messoutdaysmaximum'"
+query
     );
     res.json(days.rows);
   } catch (err) {
     console.log(err.message);
   }
 };
+
+const maxMessoutDaysinMonth=async(req,res)=>{
+    try {
+        const query=req.query.hostel==="MH"?"SELECT value FROM messrequirements WHERE key='messout_days_max_in_month'":"SELECT value FROM messrequirementsLH WHERE key='messout_days_max_in_month'"
+        const days = await pool.query(
+query
+        );
+        res.json(days.rows);
+      } catch (err) {
+        console.log(err.message);
+      }
+}
 
 const getMessRequirements = async (req, res) => {
   try {
@@ -111,7 +129,7 @@ const getMessRequirements = async (req, res) => {
       "SELECT value FROM messrequirements WHERE key='messoutdaysmaximum'"
     );
     const daysmaxinmonth = await pool.query(
-      "SELECT value FROM messrequirements WHERE key=' messout_days_max_in_month'"
+      "SELECT value FROM messrequirements WHERE key='messout_days_max_in_month'"
     );
     res.json({
       min: days.rows,
@@ -122,6 +140,26 @@ const getMessRequirements = async (req, res) => {
     console.error(e);
   }
 };
+const getMessRequirementsLH = async (req, res) => {
+    try {
+      const days = await pool.query(
+        "SELECT value FROM messrequirementsLH WHERE key='messoutdays'"
+      );
+      const daysmax = await pool.query(
+        "SELECT value FROM messrequirementsLH WHERE key='messoutdaysmaximum'"
+      );
+      const daysmaxinmonth = await pool.query(
+        "SELECT value FROM messrequirementsLH WHERE key='messout_days_max_in_month'"
+      );
+      res.json({
+        min: days.rows,
+        max: daysmax.rows,
+        maxinmonth: daysmaxinmonth.rows,
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
 const renderFormTemplate = async (req, res) => {
   try {
@@ -192,65 +230,141 @@ const viewCertificates = async (req, res) => {
     console.error(e);
   }
 };
-
-const applyMessOut = async (req, res) => {
+const checkMessOut = async (req, res) => {
   try {
-    const date=new Date()
-    date.setFullYear(date.getFullYear() + 100)
-    const { user_id, fromDate } = req.body;
-    let todatefinal=null,toDate1=date,toDate2=date;
+    const { user_id,hostel } = req.body;
     const getadmno = await pool.query(
       "SELECT hostel_admission_no FROM inmate_table WHERE admission_no=$1",
       [user_id]
     );
     const hostel_admno = getadmno.rows[0].hostel_admission_no;
-    const messrequirements = await pool.query(
-      "select value from messrequirements where key='messoutdaysmaximum' or key='messout_days_max_in_month'"
+    const updateMessTable=pool.query("update messout set showtodate=true where todate<=current_date and hostel_admission_no=$1",[hostel_admno])
+    const messout = await pool.query(
+      "select fromdate,todate from messout where hostel_admission_no=$1 and showtodate=false",
+      [hostel_admno]
     );
-    
-    console.log(messrequirements.rows[0].value, messrequirements.rows[1].value);
-    if(messrequirements.rows[0].value>0)
-    {
-        const countperMonth=await pool.query("select countpermonth from cumulativemessoutinmate where admission_no=$1",[hostel_admno]);
-            if(countperMonth.rowCount>0)
-            {
-                const messoutfromdate = new Date(fromDate);
-               if(countperMonth.rows[0].countpermonth<messrequirements.rows[0].value){
-                toDate1 = new Date(
-                                messoutfromdate.setDate(
-                                  messoutfromdate.getDate() + messrequirements.rows[0].value-countperMonth.rows[0].countpermonth
-                                )
-                              );
+    const countperMonth = await pool.query(
+      "select countpermonth from cumulativemessoutinmate where hostel_admission_no=$1",
+      [hostel_admno]
+    );
+    if (messout.rows.length > 0) {
+      res.json({
+        NomessOutDaysinMonth: countperMonth.rows[0].countpermonth,
+        isMessout: true,
+        status: true,
+        data: messout.rows[0],
+      });
+    } else {
+      let permissibledays = 0,
+        day1 = 10000,
+        day2 = 10000;
+      const query=hostel==='MH'?"select value from messrequirements where key='messoutdaysmaximum' or key='messout_days_max_in_month'":"select value from messrequirementsLH where key='messoutdaysmaximum' or key='messout_days_max_in_month'"
+      const messrequirements = await pool.query(query);
 
-               }else{
-             throw new Error("exceeded monthly limit")
+      if (messrequirements.rows[0].value > 0) {
+        if (countperMonth.rowCount > 0) {
+          if (
+            countperMonth.rows[0].countpermonth < messrequirements.rows[0].value
+          ) {
+            day1 =
+              messrequirements.rows[0].value -
+              countperMonth.rows[0].countpermonth;
+          } else {
+            throw new Error("exceeded monthly limit");
+          }
+        }
+      }
+      if (messrequirements.rows[1].value > 0) {
+        day2 = messrequirements.rows[1].value;
+      }
 
-               }
-            
-            }
+      day1 == day2==10000
+        ? (permissibledays = permissibledays)
+        : day1 < day2
+        ? (permissibledays = day1)
+        : (permissibledays = day2);
+      res.json({
+        NomessOutDaysinMonth: countperMonth.rows[0].countpermonth,
+        AllowableDays: permissibledays,
+        isMessout: false,
+        status: false,
+      });
     }
-    if(messrequirements.rows[1].value > 0){
-      const messoutfromdate = new Date(fromDate);
-      toDate2 = new Date(
-        messoutfromdate.setDate(
-          messoutfromdate.getDate() + messrequirements.rows[1].value
-        )
+  } catch (err) {
+    console.log(err.message);
+    res.status(200).json({
+      status: "failed",
+      msg: "exceeded monthly limit cannot apply for messout",
+    });
+  }
+};
+
+const applyMessOut = async (req, res) => {
+  try {
+    let { user_id, fromDate, toDate,hostel } = req.body;
+
+    const getadmno = await pool.query(
+      "SELECT hostel_admission_no FROM inmate_table WHERE admission_no=$1",
+      [user_id]
+    );
+    const hostel_admno = getadmno.rows[0].hostel_admission_no;
+    const query=hostel==='MH'?"select value from messrequirements where key='messoutdays'":"select value from messrequirementsLH where key='messoutdays'"
+    const messrequirements = await pool.query(query
       );
+    //   (fromdate +1-$4)
+    console.log(toDate)
+
+    const messOutHistory2 = await pool.query(
+        " select count(*) from messout where $1 between fromdate and todate and hostel_admission_no=$2",
+        [fromDate,hostel_admno]
+      );
+      if (messOutHistory2.rows[0].count > 0)
+      {
+        throw new Error("Seems like applied for an existing messout days");
+      }
+
+    const messOutHistory = await pool.query(
+      " select count(*) from messout where $1 between fromdate and todate or $2 between fromdate and todate and hostel_admission_no=$3",
+      [fromDate, toDate,hostel_admno]
+    );
+
+    if (messOutHistory.rows[0].count > 0)
+    {
+        const ntdate=new Date(fromDate)
+        ntdate.setDate(ntdate.getDate()+messrequirements.rows[0].value-1)
+        const newfdate=dateConverter(ntdate)
+        console.log(newfdate)
+        const messOutHistory1 = await pool.query(
+            " select min(fromdate) as val,count(*) from messout where $1 < fromdate and hostel_admission_no=$2",
+            [newfdate,hostel_admno]
+          );
+          if (messOutHistory1.rows[0].count > 0)
+          {
+              
+             const newtoDate=new Date(messOutHistory1.rows[0].val);
+             newtoDate.setDate(newtoDate.getDate()-1)
+             toDate=dateConverter(newtoDate)
+          }
+          else{
+            throw new Error("Seems like applied for an existing messout days");
+          }
+
+
     }
-    toDate1==toDate2?todatefinal=todatefinal:toDate1<toDate2?todatefinal=toDate1.toLocaleDateString():todatefinal=toDate2.toLocaleDateString()
-             const messout = await pool.query(
-                "INSERT INTO messout VALUES($1,$2,$3,false) RETURNING *",
-                [hostel_admno, fromDate, todatefinal]
-              );
-              res.status(200).json({
-                status:'success',
-                msg:'succesfully requested messout',
-                data:messout.rows});
+    const messout = await pool.query(
+      "INSERT INTO messout VALUES($1,$2,$3,false) RETURNING *",
+      [hostel_admno, fromDate, toDate]
+    );
+    res.status(200).json({
+      status: "ok",
+      msg: "succesfully requested messout",
+      data: messout.rows,
+    });
   } catch (e) {
-    res.status(400).json({
-        status:"failed",
-        msg:e.message
-    })
+    res.json({
+      status: "failed",
+      msg: e.message,
+    });
     console.log(e.message);
   }
 };
@@ -264,40 +378,23 @@ const applyMessin = async (req, res) => {
     );
     const hostel_admno = getadmno.rows[0].hostel_admission_no;
     const messout = await pool.query(
-      "update messout set todate=$1 where hostel_admission_no=$2 and todate is null returning *",
+      "update messout set todate=$1,showtodate=true where hostel_admission_no=$2 and showtodate=false returning *",
       [toDate, hostel_admno]
     );
-    console.log(messout.rows);
+    const tdate=new Date(messout.rows[0].todate)
+    const fdate=new Date(messout.rows[0].fromdate)
+    const dif=((tdate.getTime()-fdate.getTime())/(1000 * 3600 * 24))+1
+    const updateCumulativeCount=await pool.query("update cumulativemessoutinmate set  countpermonth=countpermonth+$1 where hostel_admission_no=$2 ",[dif,hostel_admno])
     // res.json(messout.rows[0])
-    res.json(messout);
+    res.json({
+        status:'ok',
+        msg:"succcesfully send mess in request",
+        data:messout});
   } catch (err) {
-    console.log(err.message);
-  }
-};
-const checkMessOut = async (req, res) => {
-  try {
-    const { user_id } = req.body;
-    const getadmno = await pool.query(
-      "SELECT hostel_admission_no FROM inmate_table WHERE admission_no=$1",
-      [user_id]
-    );
-    const hostel_admno = getadmno.rows[0].hostel_admission_no;
-    const messout = await pool.query(
-      "select fromdate from messout where hostel_admission_no=$1 and todate is null",
-      [hostel_admno]
-    );
-    if (messout.rows.length > 0) {
-      res.json({
-        status: true,
-        data: messout.rows[0],
-      });
-    } else {
-      res.json({
-        status: false,
-      });
-    }
-  } catch (err) {
-    console.log(err.message);
+    res.json({
+        status:"failed",
+        msg:err.message
+    })
   }
 };
 
@@ -314,14 +411,23 @@ const viewMessBill = async (req, res) => {
 };
 
 const messOutRequests = async (req, res) => {
-  console.log(req.query.hostel);
   try {
-    const requests = await pool.query(
+    console.log(req.query.date, "nadee");
+    let requests = await pool.query(
       `SELECT mo.hostel_admission_no,mo.fromdate,mo.todate,u.name from messout as mo,inmate_table as it,inmate_room as ir,hostel_room as hr,hostel_blocks as hb,users as u
         WHERE mo.hostel_admission_no=it.hostel_admission_no AND it.admission_no = u.user_id AND it.hostel_admission_no=ir.hostel_admission_no AND ir.room_id=hr.room_id
         AND hr.block_id=hb.block_id AND hb.hostel=$1`,
       [req.query.hostel]
     );
+    if (req.query.date != 0) {
+      console.log(req.query.date, "nadee");
+      requests = await pool.query(
+        `SELECT mo.hostel_admission_no,mo.fromdate,mo.todate,u.name from messout as mo,inmate_table as it,inmate_room as ir,hostel_room as hr,hostel_blocks as hb,users as u
+              WHERE mo.hostel_admission_no=it.hostel_admission_no AND it.admission_no = u.user_id AND it.hostel_admission_no=ir.hostel_admission_no AND ir.room_id=hr.room_id
+              AND hr.block_id=hb.block_id AND hb.hostel=$1 AND $2 between mo.fromdate AND mo.todate`,
+        [req.query.hostel, req.query.date]
+      );
+    }
     console.log(requests);
     res.json(requests);
   } catch (e) {
@@ -330,8 +436,10 @@ const messOutRequests = async (req, res) => {
 };
 
 const currentMessInmates = async (req, res) => {
+ 
   try {
-    const date = new Date();
+    const hostel=req.query.hostel
+    const date = new Date(req.query.date);
     let month = (date.getMonth() + 1).toString();
     let day = date.getDate().toString();
     let year = date.getFullYear();
@@ -358,8 +466,8 @@ const currentMessInmates = async (req, res) => {
         and inmate_table.hostel_admission_no = inmate_room.hostel_admission_no 
         and inmate_room.room_id = hostel_room.room_id 
         and hostel_room.block_id = hostel_blocks.block_id
-        and hostel_blocks.hostel='MH'`,
-      [inputdate]
+        and hostel_blocks.hostel=$2`,
+      [inputdate,hostel]
     );
     console.log(query.rows);
     res.send(query.rows);
@@ -417,7 +525,9 @@ module.exports = {
   submitRoomChange,
   viewMessOutHistory,
   getMessRequirements,
+  getMessRequirementsLH,
   messOutDays,
+  maxMessoutDaysinMonth,
   maxMessOutDays,
   checkMessOut,
   renderFormTemplate,

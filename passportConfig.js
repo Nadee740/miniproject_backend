@@ -60,20 +60,29 @@ module.exports = function(passport){
                           if(response.rows[0].stage=="inmate")
                           {
                             pool.query(`SELECT Role from INMATE_TABLE it, INMATE_ROLE ir
-                              WHERE it.Admission_No=$1 and it.Hostel_Admission_No=ir.Hostel_Admission_No`, [user.user_id], (err, response)=>{
-                              if(!err)
+                            WHERE it.Admission_No=$1 and it.Hostel_Admission_No=ir.Hostel_Admission_No`, [user.user_id], (err, response)=>{
+                            if(!err)
+                            {
+                              console.log("I got here ",response.rows)
+                              user.roles=response.rows.map(item=>item.role)
+                              pool.query(`select hostel from hostel_blocks as hb,hostel_room as hr,inmate_table as it,inmate_room as ir where it.hostel_admission_no=ir.hostel_admission_no and ir.room_id=hr.room_id and hb.block_id=hr.block_id and it.admission_no=$1`,
+                               [user.user_id], (errmsg, response_hostel)=>{
+                              if(!errmsg)
                               {
-                                console.log("I got here ",response.rows)
-                                user.roles=response.rows.map(item=>item.role)
-
-                                console.log("userWithRoles : ",user.roles)
-                                return done(null,user)
+                                  user.hostel=response_hostel.rows[0].hostel
+                              return done(null,user)
                               }
-                              else
-                              {
-                                console.log(err)
+                              else{
+                                console.log(errmsg)
                               }
                             })
+
+                            }
+                            else
+                            {
+                              console.log(err)
+                            }
+                          })
                           }
                           else if(response.rows[0].stage=="noninmate")//non inmate
                           {
@@ -173,9 +182,18 @@ module.exports = function(passport){
                                         {
                                           console.log("I got here ",response.rows)
                                           user.roles=response.rows.map(item=>item.role)
-
-                                          console.log("userWithRoles : ",user)
+                                          pool.query(`select hostel from hostel_blocks as hb,hostel_room as hr,inmate_table as it,inmate_room as ir where it.hostel_admission_no=ir.hostel_admission_no and ir.room_id=hr.room_id and hb.block_id=hr.block_id and it.admission_no=$1`,
+                                           [user.user_id], (errmsg, response_hostel)=>{
+                                          if(!errmsg)
+                                          {
+                                            user.hostel=response_hostel.rows[0].hostel
                                           return done(null,user)
+                                          }
+                                          else{
+                                            console.log(errmsg)
+                                          }
+                                        })
+
                                         }
                                         else
                                         {

@@ -30,9 +30,11 @@ router.delete('/cancelmessout',inmate.cancelMessOut)
 
 //View MessOut days
 router.get('/messoutdays',inmate.messOutDays)
-
 router.get('/maximum-messoutdays',inmate.maxMessOutDays)
+router.get('/maximum-messoutdays-month',inmate.maxMessoutDaysinMonth)
+
 router.get('/mess-requirements',inmate.getMessRequirements)
+router.get('/mess-requirements-LH',inmate.getMessRequirements)
 
 //Apply for MessOut
 router.post('/applymessout',inmate.applyMessOut)
@@ -56,7 +58,8 @@ router.post('/applycertificate',inmate.applyCertificate)
 router.put('/messoutdays',async (req,res)=>{
     try{
         const {noofDays}=req.body
-        const messout=await pool.query("UPDATE messrequirements SET value=$1 WHERE key='messoutdays'",[noofDays])
+        const query=req.query.hostel==="MH"?"UPDATE messrequirements SET value=$1 WHERE key='messoutdays'":"UPDATE messrequirementsLH SET value=$1 WHERE key='messoutdays'"
+        const messout=await pool.query(query,[noofDays])
         console.log(messout)
     }
     catch(e){
@@ -66,7 +69,19 @@ router.put('/messoutdays',async (req,res)=>{
 router.put('/messoutmaximumdays',async (req,res)=>{
     try{
         const {noofDays}=req.body
-        const messout=await pool.query("UPDATE messrequirements SET value=$1 WHERE key='messoutdaysmaximum' returning * ",[noofDays])
+        const query=req.user.hostel==="MH"?"UPDATE messrequirements SET value=$1 WHERE key='messoutdaysmaximum' returning * ":"UPDATE messrequirementsLH SET value=$1 WHERE key='messoutdaysmaximum' returning * "
+        const messout=await pool.query(query,[noofDays])
+        res.json(messout)
+    }
+    catch(e){
+        console.error(e)
+    }
+})
+router.put('/messoutmaximumdays-month',async (req,res)=>{
+    try{
+        const {noofDays}=req.body
+        const query=req.query.hostel==="MH"?"UPDATE messrequirements SET value=$1 WHERE key='messout_days_max_in_month' returning * ":"UPDATE messrequirementsLH SET value=$1 WHERE key='messout_days_max_in_month' returning * "
+        const messout=await pool.query(query,[noofDays])
         res.json(messout)
     }
     catch(e){
