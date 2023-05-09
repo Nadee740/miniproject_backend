@@ -131,6 +131,7 @@ const getMessRequirements = async (req, res) => {
     const daysmaxinmonth = await pool.query(
       "SELECT value FROM messrequirements WHERE key='messout_days_max_in_month'"
     );
+
     res.json({
       min: days.rows,
       max: daysmax.rows,
@@ -141,6 +142,7 @@ const getMessRequirements = async (req, res) => {
   }
 };
 const getMessRequirementsLH = async (req, res) => {
+   
     try {
       const days = await pool.query(
         "SELECT value FROM messrequirementsLH WHERE key='messoutdays'"
@@ -151,6 +153,7 @@ const getMessRequirementsLH = async (req, res) => {
       const daysmaxinmonth = await pool.query(
         "SELECT value FROM messrequirementsLH WHERE key='messout_days_max_in_month'"
       );
+
       res.json({
         min: days.rows,
         max: daysmax.rows,
@@ -324,9 +327,10 @@ const applyMessOut = async (req, res) => {
       }
 
     const messOutHistory = await pool.query(
-      " select count(*) from messout where $1 between fromdate and todate or $2 between fromdate and todate and hostel_admission_no=$3",
+      " select count(*) from messout where (hostel_admission_no=$3) and ($1 between fromdate and todate or $2 between fromdate and todate)",
       [fromDate, toDate,hostel_admno]
     );
+    console.log(messOutHistory,hostel_admno,'hyy')
 
     if (messOutHistory.rows[0].count > 0)
     {
@@ -346,7 +350,7 @@ const applyMessOut = async (req, res) => {
              toDate=dateConverter(newtoDate)
           }
           else{
-            throw new Error("Seems like applied for an existing messout days");
+            throw new Error("Seems like applied for an existing messout days hh");
           }
 
 
