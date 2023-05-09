@@ -9,12 +9,21 @@ const { Pool } = require('pg')
 //     database:"test",
 
 // })
+// const pool=new Pool({
+//     user:"postgres",
+//     password:"11092002",
+//     // host:"ec2-44-196-223-128.compute-1.amazonaws.com",
+//     host:"localhost",
+//     port:5432,
+//     database:"miniproject",
+
+// })
 const pool=new Pool({
-    user:"postgres",
+    user:"miniproject",
     password:"11092002",
     // host:"ec2-44-196-223-128.compute-1.amazonaws.com",
-    host:"localhost",
-    port:5432,
+    host:"postgresql-125486-0.cloudclusters.net",
+    port:19060,
     database:"miniproject",
 
 })
