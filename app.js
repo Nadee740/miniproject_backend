@@ -22,8 +22,13 @@ const bcrypt = require("bcryptjs");
 //Body parser middleware - passport returned ad request without this
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
-
+// app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
+const corsOptions ={
+    origin:["http://localhost:3000","https://miniproject-frontend-lime.vercel.app"], 
+    credentials:true,            //access-control-allow-credentials:true
+    optionSuccessStatus:200,
+ }
+app.use(cors(corsOptions));
 // creating 24 hours from milliseconds
 const oneDay = 1000 * 60 * 60 * 24;
 //session middleware
@@ -144,7 +149,11 @@ app.get(
   }
 );
 app.get("/", async (req, res) => {
-    res.send('App is Live!')
+    // res.send('App is Live!')
+    const a=await pool.query("select * from users");
+    res.send({
+        data:a.rows
+    })
     // const userid='21LH121';
     // const password=await bcrypt.hash('131821LH121',8);
     // const name='Athira b'
