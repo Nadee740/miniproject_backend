@@ -25,6 +25,24 @@ const getHostelApplications = async (req,res)=>{
     }
 }
 
+const getMessAttendance=async(req,res)=>{
+    try{
+
+        const messList=await pool.query("select m.hostel_admission_no,u.name,(SELECT DATE_PART('days',DATE_TRUNC('month', date '2020-02-01')+ '1 MONTH'::INTERVAL - '1 DAY'::INTERVAL))-sum(case when extract(month from fromdate) = 04 then case when current_date>=todate then todate+1-fromdate else case when current_date>=fromdate then current_date+1-fromdate end end else case when extract(month from todate) = 04 then extract(day from todate) end end) as val from messout as m,users as u,inmate_table it where fromdate<=current_date and it.hostel_admission_no=m.hostel_admission_no and u.user_id=it.admission_no group by m.hostel_admission_no,u.name;");
+        res.send({
+            status:"ok",
+            msg:"got mess attendance",
+            data:messList.rows
+        })
+    }catch(err)
+    {
+    res.send({
+        status:"failed",
+        msg:err.message
+    })
+    }
+}
+
 const generateRankList= async(req,res) =>{
     try{
 
@@ -188,4 +206,4 @@ const getCertificateApplications = async (req,res)=>{
     res.json(requiredCertificates)
 }
 
-module.exports={hostelRegistry,getHostelApplications,generateRankList,getCertificateApplications}
+module.exports={getMessAttendance,hostelRegistry,getHostelApplications,generateRankList,getCertificateApplications}

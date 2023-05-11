@@ -7,6 +7,8 @@ router.get('/hostelregistry',warden.hostelRegistry)
 
 router.get('/gethostelapplications',warden.getHostelApplications)
 
+router.get('/get-mess-attendance',warden.getMessAttendance)
+
 router.get('/generateranklist',warden.generateRankList)
 
 router.get('/getcertificateapplications',warden.getCertificateApplications)
