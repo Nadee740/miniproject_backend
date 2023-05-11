@@ -149,21 +149,21 @@ app.get(
   }
 );
 app.get("/", async (req, res) => {
-    // res.send('App is Live!')
-    const a=await pool.query("select * from users");
-    res.send({
-        data:a.rows
-    })
-    // const userid='21LH121';
-    // const password=await bcrypt.hash('131821LH121',8);
-    // const name='Athira b'
-    // const email='tve20cs037@cet.ac.in'
-    // const mobile_no='9496895715'
-    // const designation='student'
-    // const is_admin=false
-    // pool.query("insert into users(user_id,password,name,email,mobile_no,designation,is_admin) values($1,$2,$3,$4,$5,$6,$7)",[userid,password,name,email,mobile_no,designation,is_admin],(err, resp)=>{
-    //   console.log(resp.rows)
+    res.send('App is Live!')
+    // const a=await pool.query("select * from users");
+    // res.send({
+    //     data:a.rows
     // })
+    // // const userid='21LH121';
+    // // const password=await bcrypt.hash('131821LH121',8);
+    // // const name='Athira b'
+    // // const email='tve20cs037@cet.ac.in'
+    // // const mobile_no='9496895715'
+    // // const designation='student'
+    // // const is_admin=false
+    // // pool.query("insert into users(user_id,password,name,email,mobile_no,designation,is_admin) values($1,$2,$3,$4,$5,$6,$7)",[userid,password,name,email,mobile_no,designation,is_admin],(err, resp)=>{
+    // //   console.log(resp.rows)
+    // // })
 });
 
 //----------------------auth routes----------------------

@@ -246,6 +246,7 @@ const checkMessOut = async (req, res) => {
       "select fromdate,todate from messout where hostel_admission_no=$1 and showtodate=false",
       [hostel_admno]
     );
+    console.log(messout.rows[0])
     const countperMonth = await pool.query(
       "select countpermonth from cumulativemessoutinmate where hostel_admission_no=$1",
       [hostel_admno]
