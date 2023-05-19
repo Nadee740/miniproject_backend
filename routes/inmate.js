@@ -39,6 +39,7 @@ router.get('/mess-requirements-LH',inmate.getMessRequirementsLH)
 //Apply for MessOut
 router.post('/applymessout',inmate.applyMessOut)
 router.post('/applymessin',inmate.applyMessin)
+router.post('/editmessdata',inmate.editMessoutData)
 router.post('/checkmessout',inmate.checkMessOut)
 
 
@@ -69,7 +70,7 @@ router.put('/messoutdays',async (req,res)=>{
 router.put('/messoutmaximumdays',async (req,res)=>{
     try{
         const {noofDays}=req.body
-        const query=req.user.hostel==="MH"?"UPDATE messrequirements SET value=$1 WHERE key='messoutdaysmaximum' returning * ":"UPDATE messrequirementsLH SET value=$1 WHERE key='messoutdaysmaximum' returning * "
+        const query=req.query.hostel==="MH"?"UPDATE messrequirements SET value=$1 WHERE key='messoutdaysmaximum' returning * ":"UPDATE messrequirementsLH SET value=$1 WHERE key='messoutdaysmaximum' returning * "
         const messout=await pool.query(query,[noofDays])
         res.json(messout)
     }
@@ -78,6 +79,7 @@ router.put('/messoutmaximumdays',async (req,res)=>{
     }
 })
 router.put('/messoutmaximumdays-month',async (req,res)=>{
+    console.log(req.query.hostel)
     try{
         const {noofDays}=req.body
         const query=req.query.hostel==="MH"?"UPDATE messrequirements SET value=$1 WHERE key='messout_days_max_in_month' returning * ":"UPDATE messrequirementsLH SET value=$1 WHERE key='messout_days_max_in_month' returning * "

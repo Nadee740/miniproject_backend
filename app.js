@@ -59,7 +59,7 @@ const storage = multer.diskStorage({
   },
 });
 const uploadFile = multer({ storage: storage });
-async function importExcelData2MongoDB(filePath, req, res) {
+async function importExcelData2Psql(filePath, req, res) {
   // -> Read Excel File to Json Data
   // const excelData = excelToJson({
   //   sourceFile: filePath,
@@ -95,7 +95,7 @@ async function importExcelData2MongoDB(filePath, req, res) {
       F: "f",
       G: "g",
     },
-    Sheet2: [
+    Sheet1: [
       {
         name: "user",
       },
@@ -103,32 +103,59 @@ async function importExcelData2MongoDB(filePath, req, res) {
   });
   let arr = [];
   try {
-    excelData.Sheet2.map(async (row, index) => {
+    excelData.Sheet1.map(async(row, index) => {
+       
+        if(row.c){  
+                      
+            const block=row.c[0]
+            const room=row.c.substring(1,4);
+            const userid=row.b;
+            const pass='1318'+row.b
+            const password=await bcrypt.hash(pass,8);
+            const name=row.d
+            const designation='student'
+            const is_admin=false
+            const insert_user=await pool.query("insert into users(user_id,password,name,designation,is_admin) values($1,$2,$3,$4,$5)",[userid,password,name,designation,is_admin])
+            const insert_student=await pool.query("insert into student(admission_no,stage) values($1,'inmate')",[userid]);
+            const insert_inmate=await pool.query("insert into inmate_table values($1,$1)",[userid]);
+            const insert_inmate_room=await pool.query("insert into inmate_room select $1,room_id from hostel_room as hr,hostel_blocks as hb where hb.block_name=$2 and hr.room_no=$3 and hr.block_id=hb.block_id;",[userid,block,room])
+            
+            arr.push(row)
+           console.log(arr.length)
+        }
+
+
+        ///INSERTING ROOMS INTO PSQL FROM EXCEL
+     
     //   const block_id = await pool.query(
     //     "select block_id from hostel_blocks where block_name=$1",
     //     [row.b]
     //   );
     //   console.log(block_id.rows[0]);
-      for (let i = row.c; i <= row.d; i++) {
-        // const insertblock = await pool.query(
-        //   "insert into hostel_room(block_id,room_no,floor_no) values ($1,$2,$3)",
-        //   [block_id.rows[0].block_id, i, String(i)[0]]
-        // );
-        // console.log(insertblock)
-        arr.push({
-          room_no: i,
-          floor_no: String(i)[0],
-          block_name: row.b,
-        //   block_id: block_id.rows[0].block_id,
-          hostel: row.a,
-        });
-      console.log(arr.length)
-    
+    //   for (let i = row.c; i <= row.d; i++) {
+    //     // const insertblock = await pool.query(
+    //     //   "insert into hostel_room(block_id,room_no,floor_no) values ($1,$2,$3)",
+    //     //   [block_id.rows[0].block_id, i, String(i)[0]]
+    //     // );
+    //     // console.log(insertblock)
+    //     arr.push({
+    //       room_no: i,
+    //       floor_no: String(i)[0],
+    //       block_name: row.b,
+    //     //   block_id: block_id.rows[0].block_id,
+    //       hostel: row.a,
+    //     });
+    //   console.log(arr.length)
+     ///INSERTING ROOMS INTO PSQL FROM EXCEL END
         
-      }
+    //   }
     });
+   if(arr.length==3)
     res.send({
-        data: arr,
+        tot:excelData.Sheet1.length,
+        length:arr.length,
+        data: arr
+       
       });
   } catch (err) {
     console.log(err);
@@ -141,29 +168,27 @@ app.get(
   "/upload-excel-data",
   uploadFile.single("import-excel"),
   async (req, res) => {
-    const d = await importExcelData2MongoDB(
-      "E:/Mini Project/Details/Hostel_Room Details.xlsx",
+    const d = await importExcelData2Psql(
+      "E:/Mini Project/Details/test inmate details MH.xlsx",
       req,
       res
     );
   }
 );
 app.get("/", async (req, res) => {
-    res.send('App is Live!')
+    // res.send('App is Live!')
     // const a=await pool.query("select * from users");
     // res.send({
     //     data:a.rows
     // })
-    // // const userid='21LH121';
-    // // const password=await bcrypt.hash('131821LH121',8);
-    // // const name='Athira b'
-    // // const email='tve20cs037@cet.ac.in'
-    // // const mobile_no='9496895715'
-    // // const designation='student'
-    // // const is_admin=false
-    // // pool.query("insert into users(user_id,password,name,email,mobile_no,designation,is_admin) values($1,$2,$3,$4,$5,$6,$7)",[userid,password,name,email,mobile_no,designation,is_admin],(err, resp)=>{
-    // //   console.log(resp.rows)
-    // // })
+    const userid='18MH015';
+    const password=await bcrypt.hash('131818MH015',8);
+    const name='ANIRUDH RAMESH'
+    const designation='student'
+    const is_admin=false
+    pool.query("insert into users(user_id,password,name,designation,is_admin) values($1,$2,$3,$4,$5)",[userid,password,name,designation,is_admin],(err, resp)=>{
+      res.send(resp)
+    })
 });
 
 //----------------------auth routes----------------------

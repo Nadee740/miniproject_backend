@@ -27,8 +27,12 @@ const getHostelApplications = async (req,res)=>{
 
 const getMessAttendance=async(req,res)=>{
     try{
-
-        const messList=await pool.query("select m.hostel_admission_no,u.name,(SELECT DATE_PART('days',DATE_TRUNC('month', date '2020-02-01')+ '1 MONTH'::INTERVAL - '1 DAY'::INTERVAL))-sum(case when extract(month from fromdate) = 04 then case when current_date>=todate then todate+1-fromdate else case when current_date>=fromdate then current_date+1-fromdate end end else case when extract(month from todate) = 04 then extract(day from todate) end end) as val from messout as m,users as u,inmate_table it where fromdate<=current_date and it.hostel_admission_no=m.hostel_admission_no and u.user_id=it.admission_no group by m.hostel_admission_no,u.name;");
+        const hostel=req.query.hostel;
+        const datemonth=req.query.date[5]+req.query.date[6]
+        const date=req.query.date+"-"+18
+        const days=await pool.query("SELECT DATE_PART('days',DATE_TRUNC('month',date($1) )+ '1 MONTH'::INTERVAL - '1 DAY'::INTERVAL)",['2023-05-18'])
+        console.log(days.rows);
+        const messList=await pool.query("select m.hostel_admission_no,u.name,(SELECT DATE_PART('days',DATE_TRUNC('month', date($1))+ '1 MONTH'::INTERVAL - '1 DAY'::INTERVAL))-sum(case when extract(month from fromdate) = $2 then case when current_date>=todate then todate+1-fromdate else case when current_date>=fromdate then current_date+1-fromdate end end else case when extract(month from todate) = $2 then extract(day from todate) end end) as val from messout as m,users as u,inmate_table it where fromdate<=current_date and it.hostel_admission_no=m.hostel_admission_no and u.user_id=it.admission_no group by m.hostel_admission_no,u.name;",[date,datemonth]);
         res.send({
             status:"ok",
             msg:"got mess attendance",
@@ -36,6 +40,10 @@ const getMessAttendance=async(req,res)=>{
         })
     }catch(err)
     {
+        console.log({
+            status:"failed",
+            msg:err.message
+        });
     res.send({
         status:"failed",
         msg:err.message
@@ -189,6 +197,7 @@ const generateRankList= async(req,res) =>{
         console.log(e)
     }
 }
+
 
 const getCertificateApplications = async (req,res)=>{
     const certificates=await pool.query(`SELECT ST.admission_no,u.name as studentname,B.programme,C.name as certificatename,CA.application_id,CA.date,CA.status,CA.application_form,p.path FROM student as ST, certificate_application as CA, certificates as C, path as P, users as U,batch as B WHERE B.batchid=ST.batchid and ST.admission_no = CA.admission_no and CA.certificate_id=C.certificate_id and ST.admission_no=u.user_id and C.pathno=P.pathno`)
