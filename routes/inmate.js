@@ -40,6 +40,7 @@ router.get('/mess-requirements-LH',inmate.getMessRequirementsLH)
 router.post('/applymessout',inmate.applyMessOut)
 router.post('/applymessin',inmate.applyMessin)
 router.post('/editmessdata',inmate.editMessoutData)
+router.post('/editprevmessoutdata',inmate.editPrevMessData)
 router.post('/checkmessout',inmate.checkMessOut)
 
 
