@@ -29,6 +29,7 @@ router.get('/messouthistory',inmate.viewMessOutHistory)
 router.delete('/cancelmessout',inmate.cancelMessOut)
 
 //View MessOut days
+router.get('/messoutpredaysk',inmate.messoutpredaysk)
 router.get('/messoutdays',inmate.messOutDays)
 router.get('/maximum-messoutdays',inmate.maxMessOutDays)
 router.get('/maximum-messoutdays-month',inmate.maxMessoutDaysinMonth)
@@ -42,6 +43,7 @@ router.post('/applymessin',inmate.applyMessin)
 router.post('/editmessdata',inmate.editMessoutData)
 router.post('/editprevmessoutdata',inmate.editPrevMessData)
 router.post('/checkmessout',inmate.checkMessOut)
+router.post('/cancelmessout',inmate.cancelMessOut);
 
 
 //INMATE - CERTIFICATE ROUTES
@@ -57,6 +59,18 @@ router.post('/applycertificate',inmate.applyCertificate)
 
 //MESS SECRETARY
 //Update MessOut Rule
+router.put('/messoutpredaysk',async (req,res)=>{
+    try{
+        const {noofDays}=req.body
+        const query=req.query.hostel==="MH"?"UPDATE messrequirements SET value=$1 WHERE key='messoutpredaysk'":"UPDATE messrequirementsLH SET value=$1 WHERE key='messoutpredaysk'"
+        const messout=await pool.query(query,[noofDays])
+        console.log(messout)
+    }
+    catch(e){
+        console.error(e)
+    }
+})
+
 router.put('/messoutdays',async (req,res)=>{
     try{
         const {noofDays}=req.body

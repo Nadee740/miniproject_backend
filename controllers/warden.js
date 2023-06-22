@@ -25,6 +25,7 @@ const getHostelApplications = async (req,res)=>{
     }
 }
 
+
 const getMessAttendance=async(req,res)=>{
     try{
         const hostel=req.query.hostel;
@@ -32,7 +33,7 @@ const getMessAttendance=async(req,res)=>{
         const date=req.query.date+"-"+18
         const days=await pool.query("SELECT DATE_PART('days',DATE_TRUNC('month',date($1) )+ '1 MONTH'::INTERVAL - '1 DAY'::INTERVAL)",['2023-05-18'])
         console.log(days.rows);
-        const messList=await pool.query("select m.hostel_admission_no,u.name,(SELECT DATE_PART('days',DATE_TRUNC('month', date($1))+ '1 MONTH'::INTERVAL - '1 DAY'::INTERVAL))-sum(case when extract(month from fromdate) = $2 then case when current_date>=todate then todate+1-fromdate else case when current_date>=fromdate then current_date+1-fromdate end end else case when extract(month from todate) = $2 then extract(day from todate) end end) as val from messout as m,users as u,inmate_table it where fromdate<=current_date and it.hostel_admission_no=m.hostel_admission_no and u.user_id=it.admission_no group by m.hostel_admission_no,u.name;",[date,datemonth]);
+        const messList=await pool.query("select m.hostel_admission_no,u.name,case (select extract (month from current_date)) when $2 then (select extract (days from current_date)) else (SELECT DATE_PART('days',DATE_TRUNC('month', date($1))+ '1 MONTH'::INTERVAL - '1 DAY'::INTERVAL)) end-sum(case when extract(month from fromdate) = $2 then case when current_date>=todate then todate+1-fromdate else case when current_date>=fromdate then current_date+1-fromdate else 0 end end else case when extract(month from todate) = $2 then extract(day from todate) else 0 end end) as val from messout as m,users as u,inmate_table it where it.hostel_admission_no=m.hostel_admission_no and u.user_id=it.admission_no group by m.hostel_admission_no,u.name;",[date,datemonth]);
         res.send({
             status:"ok",
             msg:"got mess attendance",

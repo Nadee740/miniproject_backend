@@ -4,6 +4,7 @@ const bcryptjs = require('bcryptjs')
 
 module.exports = function(passport){
   passport.use('local',new LocalStrategy((username, password, done)=>{
+    console.log("hiyaa");
     pool.query(`SELECT * FROM USERS
                 WHERE User_Id=$1`, [username], (err, resp) => {
         if (err) {
@@ -19,11 +20,13 @@ module.exports = function(passport){
             return done(null, false, {message : "incorrect username"})
   
           bcryptjs.compare(password, resp.rows[0].password, function(err, result) {
-            if(result==false)
-              return done(null, false, {message : "incorrect passsword"})
-          });
-
-          var user={...resp.rows[0]}
+            if(result==false){
+                console.log(result);
+                return done(null, false, {message : "incorrect passsword"})
+        
+            }
+            else{
+                var user={...resp.rows[0]}
           user.roles=[]
 
           if(user.designation=="faculty")
@@ -101,6 +104,11 @@ module.exports = function(passport){
           }
           else
             return done(null, user)
+            }
+            
+          });
+
+          
 
           
           
@@ -136,6 +144,7 @@ module.exports = function(passport){
   });
   
   passport.deserializeUser(function(username, done) {
+    console.log("heuo");
     console.log("user deserialized : ",username)
 
     var user={}
