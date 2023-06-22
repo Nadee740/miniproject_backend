@@ -588,8 +588,8 @@ const editMessoutData = async (req, res) => {
       const EditedTodate = dateConverter(editedMessouttodate);
       console.log(EditedFromdate, EditedTodate);
       const EditData = await pool.query(
-        "update messout set fromdate=$1,todate=$2  where hostel_admission_no=$3 returning *",
-        [EditedFromdate, EditedTodate, hostel_admno]
+        "update messout set fromdate=$1,todate=$2  where hostel_admission_no=$3 and fromdate=$4 and todate=$5 returning *",
+        [EditedFromdate, EditedTodate, hostel_admno,dateConverter(req.body.fromdate),dateConverter(req.body.todate)]
       );
       res.send({
         status: "ok",
