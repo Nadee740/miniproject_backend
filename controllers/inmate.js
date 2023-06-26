@@ -574,7 +574,7 @@ const editMessoutData = async (req, res) => {
     const Fromdate = new Date(editedMessoutFromdate);
     const Todate = new Date(editedMessouttodate);
     console.log("hyy",permissibledays, (Todate - Fromdate) / (1000 * 3600 * 24) + 1);
-    if (permissibledays < (Todate - Fromdate) / (1000 * 3600 * 24) + 1) {
+    if (permissibledays < (Todate - Fromdate) / (1000 * 3600 * 24)) {
         console.log("exceeded monthly limit");
       throw new Error("exceeded monthly limit");
     }

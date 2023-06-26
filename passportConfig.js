@@ -165,7 +165,10 @@ module.exports = function(passport){
 
                                     //adding admin role if user is an admin
                                     if(user.is_admin==true)
+                                    {
                                       roles.push({role:'admin'})
+                                      roles.push({role:'WD'})
+                                    }
 
                                     var userWithRoles={
                                       ...user,
