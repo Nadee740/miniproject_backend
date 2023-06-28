@@ -7,6 +7,7 @@ const workbook = new ExcelJS.Workbook();
 const getSuplierList = async (req, res) => {
   try {
     const data = await pool.query("select * from supplier_list");
+   
     res.send({
       status: "ok",
       msg: "succesfully obained data",
@@ -20,7 +21,32 @@ const getSuplierList = async (req, res) => {
   }
 };
 
+const getexpenseperSupplier=async(req,res)=>{
+    try{
+
+        const id=req.query.id;
+        const data=await pool.query("select * from perdaymessexpenses where supplier_id=$1",[id]);
+        const sum= await pool.query("select sum(bill_amount) from perdaymessexpenses where supplier_id=$1",[id]);
+
+        console.log(data.rows);
+        res.send({
+            status:"ok",
+            msg:"got data",
+            data:data.rows,
+            sum:sum.rows
+        })
+
+    }catch(err){
+        res.send({
+            status:"failed",
+            msg:err.message
+        })
+    }
+}
+
 const addPerDayExpenses = async (req, res) => {
+    const date=new Date();
+
   try {
     const {
       bill_date,
@@ -38,7 +64,7 @@ const addPerDayExpenses = async (req, res) => {
       );
       console.log(insertSupplier.rows[0].supplier_id);
       const insertExp = await pool.query(
-        "insert into perdaymessexpenses(bill_date,bill_no,particulars,supplier_id,bill_amount,hostel) values($1,$2,$3,$4,$5,$6) returning *",
+        "insert into perdaymessexpenses(bill_date,bill_no,particulars,supplier_id,bill_amount,hostel,dates) values($1,$2,$3,$4,$5,$6,array[date($7)]) returning *",
         [
           bill_date,
           bill_number,
@@ -46,6 +72,7 @@ const addPerDayExpenses = async (req, res) => {
           insertSupplier.rows[0].supplier_id,
           bill_amount,
           hostel,
+          dateConverter(date)
         ]
       );
       res.send({
@@ -55,7 +82,7 @@ const addPerDayExpenses = async (req, res) => {
       });
     } else {
       const insertExp = await pool.query(
-        "insert into perdaymessexpenses(bill_date,bill_no,particulars,supplier_id,bill_amount,hostel) values($1,$2,$3,$4,$5,$6) returning *",
+        "insert into perdaymessexpenses(bill_date,bill_no,particulars,supplier_id,bill_amount,hostel,dates) values($1,$2,$3,$4,$5,$6,array[date($7)]) returning *",
         [
           bill_date,
           bill_number,
@@ -63,6 +90,7 @@ const addPerDayExpenses = async (req, res) => {
           supplier.supplier_id,
           bill_amount,
           hostel,
+          dateConverter(date)
         ]
       );
       res.send({
@@ -81,13 +109,17 @@ const addPerDayExpenses = async (req, res) => {
 
 const getExpenseList = async (req, res) => {
   try {
+    const date=req.query.date;
+    console.log(date,date.substring(0,4),date.substring(5,7));
+    // console.log(date.subString(0,3),date.subString(5,6));
     const isfaculty = req.query.isfaculty;
-    if (isfaculty) {
+    console.log(isfaculty);
+    if (isfaculty=='true' || isfaculty==true) {
       const status = req.query.status;
       const hostel = req.query.hostel;
       const expenseList = await pool.query(
-        "select * from perdaymessexpenses where hostel=$1 and status=$2",
-        [hostel, status]
+        "select * from perdaymessexpenses where hostel=$1 and status=$2 and EXTRACT(month FROM bill_date) = $4 and  EXTRACT(year FROM bill_date)=$3",
+        [hostel, status,date.substring(0,4),date.substring(5,7)]
       );
       res.send({
         status: "ok",
@@ -98,8 +130,8 @@ const getExpenseList = async (req, res) => {
       const status = req.query.status;
       const hostel = req.query.hostel;
       const expenseList = await pool.query(
-        "select * from perdaymessexpenses where hostel=$1 and status>=$2",
-        [hostel, status]
+        "select * from perdaymessexpenses where hostel=$1 and status>=$2 and EXTRACT(month FROM bill_date) = $4 and  EXTRACT(year FROM bill_date)=$3",
+        [hostel, status,date.substring(0,4),date.substring(5,7)]
       );
       res.send({
         status: "ok",
@@ -108,20 +140,38 @@ const getExpenseList = async (req, res) => {
       });
     }
   } catch (err) {
+    console.log({
+        status: "failed",
+        msg: err.message,
+      });;
     res.send({
       status: "failed",
       msg: err.message,
     });
   }
 };
-
+const dateConverter = (inputdate) => {
+    const date = new Date(inputdate);
+    let month = (date.getMonth() + 1).toString();
+    let day = date.getDate().toString();
+    let year = date.getFullYear();
+    if (month.length < 2) {
+      month = "0" + month;
+    }
+    if (day.length < 2) {
+      day = "0" + day;
+    }
+    return [year, month, day].join("-");
+  };
 const updateExpenseList = async (req, res) => {
   try {
+    const date=new Date();
+
     const ids = req.body.ids;
     ids.map(async (id, index) => {
       const update = await pool.query(
-        "update perdaymessexpenses set status=status+1 where id =$1 returning *",
-        [id]
+        "update perdaymessexpenses set status=status+1,dates=array_append(dates,date($2)) where id =$1 returning *",
+        [id,dateConverter(date)]
       );
       console.log(update.rows);
     });
@@ -429,6 +479,7 @@ module.exports = {
   getExpenseList,
   updateExpense,
   updateExpenseList,
+  getexpenseperSupplier,
   getMessAttendance,
   hostelRegistry,
   getHostelApplications,

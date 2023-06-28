@@ -5,6 +5,8 @@ const warden=require('../controllers/warden')
 //Hostel Registry
 router.get("/get-supplier-list",warden.getSuplierList)
 
+router.get("/get-expense-per-supplier",warden.getexpenseperSupplier)
+
 router.post("/add-expense",warden.addPerDayExpenses)
 
 router.get("/get-mess-expense",warden.getExpenseList)
